@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IWAJU Fuel Monitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --panel: #111827;
+      --border: #1e2d45;
+      --accent: #f97316;
+      --accent2: #fb923c;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --mono: 'Share Tech Mono', monospace;
+      --title: 'Rajdhani', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--title);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(249,115,22,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(34,197,94,0.05) 0%, transparent 50%);
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1.2rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(17,24,39,0.8);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+
+    .logo span { color: var(--text); }
+
+    .status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      margin-left: auto;
+      transition: all 0.3s;
+    }
+    .status-dot.running {
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: var(--mono);
+      line-height: 1;
+    }
+
+    .stat-unit {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+      font-family: var(--mono);
+    }
+
+    /* Control Panel */
+    .control-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+
+    .control-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 1.2rem;
+    }
+
+    label {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 1rem;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .btn {
+      padding: 0.9rem 2rem;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--title);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      width: 100%;
+    }
+
+    .btn-start {
+      background: var(--green);
+      color: #000;
+      margin-bottom: 0.8rem;
+    }
+
+    .btn-start:hover { background: #16a34a; transform: translateY(-1px); }
+    .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-stop {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-stop:hover { background: #dc2626; transform: translateY(-1px); }
+    .btn-stop:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* Timer display */
+    .timer-display {
+      font-family: var(--mono);
+      font-size: 3rem;
+      font-weight: 400;
+      color: var(--accent);
+      text-align: center;
+      padding: 1.5rem;
+      background: var(--bg);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    .timer-display.running {
+      color: var(--green);
+      border-color: var(--green);
+      box-shadow: 0 0 20px rgba(34,197,94,0.1);
+    }
+
+    .eta-display {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .eta-display span { color: var(--accent2); }
+
+    /* Alert bar */
+    .alert-bar {
+      display: none;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid var(--red);
+      border-radius: 8px;
+      padding: 1rem;
+      color: var(--red);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-align: center;
+      animation: blink 1s infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Chart */
+    .chart-container {
+      position: relative;
+      height: 220px;
+    }
+
+    /* History table */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+
+    .history-table th {
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .history-table td {
+      padding: 0.7rem 0.8rem;
+      border-bottom: 1px solid rgba(30,45,69,0.5);
+      color: var(--text);
+    }
+
+    .history-table tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-orange { background: rgba(249,115,22,0.15); color: var(--accent); }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 700px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .stat-value { font-size: 2rem; }
+      .timer-display { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">IWAJU <span>FUEL</span> MONITOR</div>
+  <div style="font-family: var(--mono); font-size:0.75rem; color:var(--muted);" id="clock"></div>
+  <div class="status-dot" id="statusDot"></div>
+</header>
+
+<main>
+
+  <!-- Stats -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Carburant versé</div>
+      <div class="stat-value" id="statVolume">—</div>
+      <div class="stat-unit">litres</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Autonomie estimée</div>
+      <div class="stat-value" id="statAutonomie">—</div>
+      <div class="stat-unit">heures</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sessions ce mois</div>
+      <div class="stat-value" id="statSessions">0</div>
+      <div class="stat-unit">cycles</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+      <div class="control-title">⚡ Contrôle Groupe Électrogène</div>
+
+      <div class="alert-bar" id="alertBar">
+        ⚠️ ALERTE — Panne estimée dans moins de 20 minutes !
+      </div>
+
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <div class="eta-display" id="etaDisplay">Aucune session en cours</div>
+
+      <div class="input-group" id="volumeGroup">
+        <label>Volume de carburant (litres)</label>
+        <input type="number" id="volumeInput" placeholder="Ex: 5" min="0.5" step="0.5"/>
+      </div>
+
+      <button class="btn btn-start" id="btnStart" onclick="startSession()">▶ Démarrer</button>
+      <button class="btn btn-stop" id="btnStop" onclick="stopSession()" disabled>■ Arrêter</button>
+    </div>
+
+    <!-- Chart -->
+    <div class="card">
+      <div class="card-title">Consommation — Mois en cours</div>
+      <div class="chart-container">
+        <canvas id="fuelChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="card-title">Historique des sessions</div>
+    <div id="historyContainer">
+      <div class="empty-state">Aucune session enregistrée</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // =============================================
+  // CONFIG SUPABASE — REMPLACE ICI
+  // =============================================
+  const SUPABASE_URL = 'https://tzxmphgjoasoqvgwxlwg.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_15bIgEXmeIIK_GJ-rqRmqQ_F_7C1s5_';
+  const ADMIN_EMAIL  = 'chanochanel70@gmail.com'; // email pour alerte
+  // =============================================
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let sessionActive = false;
+  let sessionStart  = null;
+  let sessionVolume = 0;
+  let timerInterval = null;
+  let alertSent     = false;
+  let chart         = null;
+
+  // Horloge
+  setInterval(() => {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('fr-FR');
+  }, 1000);
+
+  // ---- TIMER ----
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      const elapsed = (Date.now() - sessionStart) / 1000;
+      const h = Math.floor(elapsed / 3600);
+      const m = Math.floor((elapsed % 3600) / 60);
+      const s = Math.floor(elapsed % 60);
+      document.getElementById('timerDisplay').textContent =
+        `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+      // ETA
+      const autonomieMs = (sessionVolume / 5) * 4 * 3600 * 1000;
+      const finEstimee  = new Date(sessionStart + autonomieMs);
+      document.getElementById('etaDisplay').innerHTML =
+        `Fin estimée : <span>${finEstimee.toLocaleTimeString('fr-FR')}</span>`;
+
+      // Alerte 20 min avant
+      const remainingMs = (sessionStart + autonomieMs) - Date.now();
+      if (remainingMs > 0 && remainingMs <= 20 * 60 * 1000 && !alertSent) {
+        alertSent = true;
+        showAlert();
+      }
+    }, 1000);
+  }
+
+  function showAlert() {
+    document.getElementById('alertBar').style.display = 'block';
+    if (Notification.permission === 'granted') {
+      new Notification('⚠️ IWAJU Fuel Monitor', {
+        body: 'Panne estimée dans moins de 20 minutes ! Préparez du carburant.',
+        icon: '⚡'
+      });
+    } else {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') {
+          new Notification('⚠️ IWAJU Fuel Monitor', {
+            body: 'Panne estimée dans moins de 20 minutes !'
+          });
+        }
+      });
+    }
+  }
+
+  // ---- START ----
+  async function startSession() {
+    const vol = parseFloat(document.getElementById('volumeInput').value);
+    if (!vol || vol <= 0) { alert('Entrez un volume valide !'); return; }
+
+    sessionStart  = Date.now();
+    sessionVolume = vol;
+    sessionActive = true;
+    alertSent     = false;
+
+    document.getElementById('btnStart').disabled = true;
+    document.getElementById('btnStop').disabled  = false;
+    document.getElementById('volumeGroup').style.display = 'none';
+    document.getElementById('timerDisplay').classList.add('running');
+    document.getElementById('statusDot').classList.add('running');
+
+    const autonomie = (vol / 5) * 4;
+    document.getElementById('statVolume').textContent    = vol;
+    document.getElementById('statAutonomie').textContent = autonomie.toFixed(1);
+
+    startTimer();
+  }
+
+  // ---- STOP ----
+  async function stopSession() {
+    if (!sessionActive) return;
+    clearInterval(timerInterval);
+
+    const fin          = new Date();
+    const debut        = new Date(sessionStart);
+    const dureeReelle  = (fin - debut) / 3600000; // en heures
+    const autonomie    = (sessionVolume / 5) * 4;
+    const finEstimee   = new Date(sessionStart + autonomie * 3600000);
+
+    // Sauvegarde Supabase
+    const { error } = await db.from('sessions').insert([{
+      debut:             debut.toISOString(),
+      fin:               fin.toISOString(),
+      volume:            sessionVolume,
+      duree_reelle:      parseFloat(dureeReelle.toFixed(2)),
+      heure_fin_estimee: finEstimee.toISOString()
+    }]);
+
+    if (error) {
+      console.error('Erreur Supabase:', error);
+      alert('Erreur lors de la sauvegarde. Vérifiez votre connexion.');
+    }
+
+    // Reset UI
+    sessionActive = false;
+    document.getElementById('btnStart').disabled = false;
+    document.getElementById('btnStop').disabled  = true;
+    document.getElementById('volumeGroup').style.display = 'flex';
+    document.getElementById('timerDisplay').classList.remove('running');
+    document.getElementById('timerDisplay').textContent  = '00:00:00';
+    document.getElementById('statusDot').classList.remove('running');
+    document.getElementById('alertBar').style.display    = 'none';
+    document.getElementById('etaDisplay').textContent    = 'Aucune session en cours';
+    document.getElementById('volumeInput').value         = '';
+
+    loadData();
+  }
+
+  // ---- LOAD DATA ----
+  async function loadData() {
+    const now       = new Date();
+    const firstDay  = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const { data, error } = await db
+      .from('sessions')
+      .select('*')
+      .gte('debut', firstDay)
+      .order('debut', { ascending: false });
+
+    if (error) { console.error(error); return; }
+
+    document.getElementById('statSessions').textContent = data ? data.length : 0;
+    renderHistory(data || []);
+    renderChart(data || []);
+  }
+
+  // ---- HISTORY ----
+  function renderHistory(sessions) {
+    const container = document.getElementById('historyContainer');
+    if (!sessions.length) {
+      container.innerHTML = '<div class="empty-state">Aucune session enregistrée ce mois</div>';
+      return;
+    }
+
+    const rows = sessions.map(s => {
+      const debut  = new Date(s.debut).toLocaleString('fr-FR');
+      const fin    = s.fin ? new Date(s.fin).toLocaleString('fr-FR') : '—';
+      const duree  = s.duree_reelle ? s.duree_reelle.toFixed(2) + 'h' : '—';
+      const auto   = ((s.volume / 5) * 4).toFixed(1) + 'h';
+      return `<tr>
+        <td>${debut}</td>
+        <td>${fin}</td>
+        <td><span class="badge badge-orange">${s.volume}L</span></td>
+        <td>${auto}</td>
+        <td><span class="badge badge-green">${duree}</span></td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Démarrage</th>
+            <th>Arrêt</th>
+            <th>Volume</th>
+            <th>Autonomie Est.</th>
+            <th>Durée Réelle</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ---- CHART ----
+  function renderChart(sessions) {
+    // Grouper par jour
+    const days = {};
+    sessions.forEach(s => {
+      const day = new Date(s.debut).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      days[day] = (days[day] || 0) + s.volume;
+    });
+
+    const labels = Object.keys(days).reverse();
+    const values = labels.map(d => days[d]);
+
+    const ctx = document.getElementById('fuelChart').getContext('2d');
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Litres consommés',
+          data: values,
+          backgroundColor: 'rgba(249,115,22,0.6)',
+          borderColor: '#f97316',
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#64748b', font: { family: 'Share Tech Mono', size: 10 } },
+            grid:  { color: 'rgba(30,45,69,0.5)' }
+          },
+          y: {
+            ticks: { color: '#64748b', font: { family: 'Share Tech Mono', size: 10 } },
+            grid:  { color: 'rgba(30,45,69,0.5)' }
+          }
+        }
+      }
+    });
+  }
+
+  // Init
+  loadData();
+</script>
+</body>
+</html>
