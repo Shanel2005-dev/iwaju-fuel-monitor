@@ -316,7 +316,7 @@
 
 <header>
   <div class="logo">IWAJU <span>FUEL</span> MONITOR</div>
-  <div style="font-family: var(--mono); font-size:0.75rem; color:var(--muted);" id="clock"></div>
+  <div style="font-family: var(--mono); font-size:0.75rem; color:var(--muted);" id="clock"></div><br><br>
   <div class="status-dot" id="statusDot"></div>
 </header>
 
@@ -335,10 +335,16 @@
       <div class="stat-unit">heures</div>
     </div>
     <div class="card">
-      <div class="card-title">Sessions ce mois</div>
-      <div class="stat-value" id="statSessions">0</div>
-      <div class="stat-unit">cycles</div>
+        <div class="card-title">Sessions ce mois</div>
+        <div class="stat-value" id="statSessions">0</div>
+        <div class="stat-unit">cycles</div>
     </div>
+    <div class="card">
+        <div class="card-title">Rythme d'utilisation</div>
+        <div class="stat-value" id="statRythme">—</div>
+        <div class="stat-unit">heures/semaine</div>
+    </div>
+  </div>
   </div>
 
   <div class="grid-2">
@@ -526,8 +532,17 @@
       .order('debut', { ascending: false });
 
     if (error) { console.error(error); return; }
+document.getElementById('statSessions').textContent = data ? data.length : 0;
 
-    document.getElementById('statSessions').textContent = data ? data.length : 0;
+// Calcul rythme heures/semaine
+if (data && data.length > 0) {
+  const totalHeures = data.reduce((sum, s) => sum + (s.duree_reelle || 0), 0);
+  const premierDate = new Date(data[data.length - 1].debut);
+  const maintenant = new Date();
+  const semaines = Math.max(1, (maintenant - premierDate) / (7 * 24 * 3600 * 1000));
+  const rythme = (totalHeures / semaines).toFixed(1);
+  document.getElementById('statRythme').textContent = rythme;
+}
     renderHistory(data || []);
     renderChart(data || []);
   }
