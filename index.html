@@ -442,11 +442,13 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
         showAlert();
       }
 
+      
       // Arrêt automatique quand l'heure de fin est atteinte
-      if (remainingMs <= 0) {
-        clearInterval(timerInterval);
+      if (remainingMs <= 0 && sessionActive) {
         stopSession();
       }
+     
+      
     }, 1000);
   }
 
