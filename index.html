@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IWAJU Fuel Monitor</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
   <style>
@@ -395,7 +396,10 @@
   // =============================================
   const SUPABASE_URL = 'https://tzxmphgjoasoqvgwxlwg.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_15bIgEXmeIIK_GJ-rqRmqQ_F_7C1s5_';
-  const ADMIN_EMAIL  = 'chanochanel70@gmail.com'; // email pour alerte
+  const ADMIN_EMAIL     = 'chanochanel70@gmail.com';
+const EMAILJS_SERVICE = 'service_8accnt4';
+const EMAILJS_TEMPLATE = 'template_0oj51wt';
+const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
   // =============================================
 
   const { createClient } = supabase;
@@ -455,6 +459,21 @@
         }
       });
     }
+
+    // Envoi email automatique
+    emailjs.init(EMAILJS_KEY);
+    const finEstimee = new Date(sessionStart + (sessionVolume / 5) * 4 * 3600 * 1000);
+    emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      volume: sessionVolume,
+      debut: new Date(sessionStart).toLocaleString('fr-FR'),
+      fin_estimee: finEstimee.toLocaleString('fr-FR'),
+      name: 'IWAJU Fuel Monitor',
+      email: ADMIN_EMAIL
+    }).then(() => {
+      console.log('Email alerte envoyé !');
+    }).catch((error) => {
+      console.error('Erreur email:', error);
+    });
   }
 
   // ---- START ----
