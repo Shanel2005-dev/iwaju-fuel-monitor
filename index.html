@@ -434,11 +434,18 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
       document.getElementById('etaDisplay').innerHTML =
         `Fin estimée : <span>${finEstimee.toLocaleTimeString('fr-FR')}</span>`;
 
+    
       // Alerte 20 min avant
       const remainingMs = (sessionStart + autonomieMs) - Date.now();
       if (remainingMs > 0 && remainingMs <= 20 * 60 * 1000 && !alertSent) {
         alertSent = true;
         showAlert();
+      }
+
+      // Arrêt automatique quand l'heure de fin est atteinte
+      if (remainingMs <= 0) {
+        clearInterval(timerInterval);
+        stopSession();
       }
     }, 1000);
   }
