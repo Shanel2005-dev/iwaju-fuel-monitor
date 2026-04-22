@@ -380,7 +380,7 @@
 
   </div>
 
-  <!-- History -->
+  <!-- Historique  -->
   <div class="card">
     <div class="card-title">Historique des sessions</div>
     <div id="historyContainer">
@@ -392,7 +392,7 @@
 
 <script>
   // =============================================
-  // CONFIG SUPABASE — REMPLACE ICI
+  // CONFIG SUPABASE 
   // =============================================
   const SUPABASE_URL = 'https://tzxmphgjoasoqvgwxlwg.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_15bIgEXmeIIK_GJ-rqRmqQ_F_7C1s5_';
@@ -418,7 +418,7 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
       new Date().toLocaleTimeString('fr-FR');
   }, 1000);
 
-  // ---- TIMER ----
+  
   function startTimer() {
     timerInterval = setInterval(() => {
       const elapsed = (Date.now() - sessionStart) / 1000;
@@ -428,7 +428,7 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
       document.getElementById('timerDisplay').textContent =
         `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 
-      // ETA
+      
       const autonomieMs = (sessionVolume / 5) * 4 * 3600 * 1000;
       const finEstimee  = new Date(sessionStart + autonomieMs);
       document.getElementById('etaDisplay').innerHTML =
@@ -485,7 +485,7 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
     });
   }
 
-  // ---- START ----
+  
   async function startSession() {
     const vol = parseFloat(document.getElementById('volumeInput').value);
     if (!vol || vol <= 0) { alert('Entrez un volume valide !'); return; }
@@ -508,7 +508,7 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
     startTimer();
   }
 
-  // ---- STOP ----
+  
   async function stopSession() {
     if (!sessionActive) return;
     clearInterval(timerInterval);
@@ -519,7 +519,7 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
     const autonomie    = (sessionVolume / 5) * 4;
     const finEstimee   = new Date(sessionStart + autonomie * 3600000);
 
-    // Sauvegarde Supabase
+    
     const { error } = await db.from('sessions').insert([{
       debut:             debut.toISOString(),
       fin:               fin.toISOString(),
@@ -533,7 +533,7 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
       alert('Erreur lors de la sauvegarde. Vérifiez votre connexion.');
     }
 
-    // Reset UI
+    
     sessionActive = false;
     document.getElementById('btnStart').disabled = false;
     document.getElementById('btnStop').disabled  = true;
@@ -548,7 +548,7 @@ const EMAILJS_KEY     = '-Tm4vzX6BF7VQ_dco'; // email pour alerte
     loadData();
   }
 
-  // ---- LOAD DATA ----
+  
   async function loadData() {
     const now       = new Date();
     const firstDay  = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -575,7 +575,7 @@ if (data && data.length > 0) {
     renderChart(data || []);
   }
 
-  // ---- HISTORY ----
+  //  HISTORIQUE
   function renderHistory(sessions) {
     const container = document.getElementById('historyContainer');
     if (!sessions.length) {
@@ -612,7 +612,7 @@ if (data && data.length > 0) {
       </table>`;
   }
 
-  // ---- CHART ----
+  
   function renderChart(sessions) {
     // Grouper par jour
     const days = {};
